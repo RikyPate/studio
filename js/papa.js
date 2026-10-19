@@ -3,6 +3,7 @@
 const SL = StudioApp, esc = SL.esc, $ = s => document.querySelector(s);
 const app = $('#app');
 const sb = window.supabase.createClient(SL_CONFIG.url, SL_CONFIG.key, {auth:{persistSession:true, autoRefreshToken:true, storageKey:'sl_papa_auth'}});
+let vista = SL.LS.get('sl_papa_vista') || 'andamento';
 let righe = {}, sel = SL.LS.get('sl_papa_mod') || '', channel = null, aperti = new Set(), risposteAperte = new Set(), confermaReset = false;
 
 function setConn(t, on){ const c = $('#conn'); c.className = 'conn ' + (on ? 'live' : ''); c.querySelector('span').textContent = t; }
@@ -50,6 +51,8 @@ function render(){
   const m = SL.moduli[sel];
   let h = '<h1>Vista genitore</h1><div class="modsel seg" role="group" aria-label="Ripasso">'+elenco.map(v => '<button type="button" data-mod="'+v.id+'" aria-pressed="'+(v.id === sel)+'">'+esc(v.materia)+' · '+esc(v.titolo.split('·')[0].trim())+'</button>').join('')+'</div>';
   if (!m) { app.innerHTML = h + '<p class="note">Nessun ripasso disponibile.</p>'; return; }
+  h += '<div class="tabs seg" role="group" aria-label="Sezione"><button type="button" data-vista="andamento" aria-pressed="'+(vista==='andamento')+'">Andamento</button><button type="button" data-vista="schede" aria-pressed="'+(vista==='schede')+'">Schede</button></div>';
+  if (vista === 'schede') { app.innerHTML = h + '<p class="lead">'+esc(m.titolo)+(m.fonte ? ' · '+esc(m.fonte) : '')+'. Sono le stesse schede che vede lei.</p>' + m.schede; scrollTo(0, y); return; }
   const r = righe[m.id] || {}; const st = SL.normStato(r.stato); const orale = r.orale || {};
   const all = m.blocchi.map(b => ({b, s:SL.bStats(b, st), bs:st.blocks[b.id] || {}}));
   const done = all.filter(x => SL.isDone(x.b, st)).length;
@@ -85,6 +88,7 @@ function render(){
 app.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.prow')) { if (d.open) aperti.add(d.dataset.b); else aperti.delete(d.dataset.b); } }, true);
 app.addEventListener('click', async e => {
   const t = e.target.closest('button'); if (!t) return; const d = t.dataset;
+  if (d.vista) { vista = d.vista; SL.LS.set('sl_papa_vista', vista); render(); scrollTo(0, 0); return; }
   if (d.mod) { sel = d.mod; SL.LS.set('sl_papa_mod', sel); aperti.clear(); risposteAperte.clear(); confermaReset = false; render(); return; }
   if (d.oshow != null) { const i = +d.oshow; if (risposteAperte.has(i)) risposteAperte.delete(i); else risposteAperte.add(i); render(); return; }
   if (d.oral != null) {
