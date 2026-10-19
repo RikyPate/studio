@@ -15,7 +15,7 @@ alter table public.sessioni enable row level security;
 -- 2. Chi è il papà: sostituire EMAIL-DEL-PAPA con l'email dell'utente creato in Supabase
 create or replace function public.e_papa() returns boolean
 language sql stable as $$
-  select coalesce(auth.jwt() ->> 'email', '') = any (array['EMAIL-DEL-PAPA'])
+  select lower(coalesce(auth.jwt() ->> 'email', '')) = any (array[lower('EMAIL-DEL-PAPA')])
 $$;
 
 -- 3. Solo il papà legge e modifica la tabella
