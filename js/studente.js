@@ -109,7 +109,7 @@ function itemHTML(it, checked){
   }
   if (it.k === 'select') {
     let h = '<p class="q">'+esc(it.q)+'</p><div class="rows">';
-    it.rows.forEach((r,i) => { const id = it.id+'_'+i, v = A(id) || ''; const cls = checked ? (v === r[1] ? 'ok' : 'ko') : ''; h += '<label for="'+id+'">'+esc(r[0])+'</label><div><select id="'+id+'" data-id="'+id+'" class="'+cls+'"'+(checked ? ' disabled' : '')+'><option value="">…</option>'+it.opts.map(o => '<option value="'+o[0]+'"'+(v === o[0] ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>'+(checked && v !== r[1] ? '<span class="sol">'+SL.CASES[SL.CASEIDX(r[1])][1]+'</span>' : '')+'</div>'; });
+    it.rows.forEach((r,i) => { const id = it.id+'_'+i, v = A(id) || ''; const cls = checked ? (v === r[1] ? 'ok' : 'ko') : ''; h += '<label for="'+id+'">'+esc(r[0])+'</label><div><select id="'+id+'" data-id="'+id+'" class="'+cls+'"'+(checked ? ' disabled' : '')+'><option value="">…</option>'+it.opts.map(o => '<option value="'+o[0]+'"'+(v === o[0] ? ' selected' : '')+'>'+o[1]+'</option>').join('')+'</select>'+(checked && v !== r[1] ? '<span class="sol">'+esc((it.opts.find(o => o[0] === r[1]) || ['', r[1]])[1])+'</span>' : '')+'</div>'; });
     return h + '</div>';
   }
   if (it.k === 'text') {
@@ -118,8 +118,9 @@ function itemHTML(it, checked){
     return h + '</div>';
   }
   if (it.k === 'grid') {
-    let h = '<p class="q">'+it.q+'</p><div class="scroll"><table class="gridtbl"><thead><tr><th></th><th>Singolare</th><th>Plurale</th></tr></thead><tbody>';
-    it.a.forEach((row,ri) => { h += '<tr><td>'+SL.CN[ri]+'</td>'; row.forEach((acc,ci) => { const id = it.id+'_'+ri+'_'+ci, v = A(id) || ''; const ok = acc.map(SL.norm).includes(SL.norm(v)); const cls = checked ? (ok ? 'ok' : 'ko') : ''; h += '<td>'+inp(id, v, cls, checked, SL.CN[ri]+(ci ? ' plurale' : ' singolare'))+(checked && !ok ? '<span class="sol">'+esc(acc[0])+'</span>' : '')+'</td>'; }); h += '</tr>'; });
+    let h = '<p class="q">'+it.q+'</p><div class="scroll"><table class="gridtbl"><thead><tr><th></th>'+(it.cols || ['Singolare','Plurale']).map(c => '<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>';
+    const RL = it.rl || SL.CN;
+    it.a.forEach((row,ri) => { h += '<tr><td>'+esc(RL[ri])+'</td>'; row.forEach((acc,ci) => { const id = it.id+'_'+ri+'_'+ci, v = A(id) || ''; const ok = acc.map(SL.norm).includes(SL.norm(v)); const cls = checked ? (ok ? 'ok' : 'ko') : ''; h += '<td>'+inp(id, v, cls, checked, RL[ri]+(ci ? ' plurale' : ' singolare'))+(checked && !ok ? '<span class="sol">'+esc(acc[0])+'</span>' : '')+'</td>'; }); h += '</tr>'; });
     return h + '</tbody></table></div>';
   }
   if (it.k === 'multi') {
@@ -133,6 +134,7 @@ function itemHTML(it, checked){
     let h = '<p class="q"><span class="tag">'+(it.toLat ? 'In latino' : 'In italiano')+'</span><span class="'+(it.toLat ? '' : 'latin')+'" style="font-size:19px">'+esc(it.src)+'</span></p>';
     h += '<textarea id="'+it.id+'" data-id="'+it.id+'" autocapitalize="sentences" spellcheck="false" autocomplete="off"'+(checked ? ' readonly' : '')+' aria-label="La tua traduzione">'+esc(v)+'</textarea>';
     if (it.hint && !checked) h += '<div class="note">Aiuto: '+esc(it.hint)+'</div>';
+    if (checked && it.checks) { const ck = A(it.id+'_c') || []; h += '<div class="why"><b>Soluzione:</b> '+esc(it.model)+'</div><p class="note" style="margin:10px 0 6px">Confronta la tua frase con la soluzione e tocca solo i punti che hai fatto davvero giusti:</p><div class="opts">'+it.checks.map((c,i) => '<button type="button" class="opt'+(ck.includes(i) ? ' ok' : '')+'" data-ck="'+it.id+'" data-i="'+i+'" aria-pressed="'+ck.includes(i)+'">'+(ck.includes(i) ? '✓ ' : '')+esc(c)+'</button>').join('')+'</div>'; return h; }
     if (checked) h += '<div class="why"><b>Soluzione:</b> '+esc(it.model)+'</div><div class="row" style="margin-top:8px"><span class="note">La tua era:</span>'+[['ok','Giusta'],['mid','Quasi'],['no','Sbagliata']].map(o => '<button type="button" class="btn" data-self="'+it.id+'" data-v="'+o[0]+'" aria-pressed="'+(s === o[0])+'">'+o[1]+'</button>').join('')+'</div>';
     return h;
   }
@@ -144,7 +146,7 @@ function footHTML(b, bs){
   if (bs.checked) {
     const conf = {so:'Lo so', credo:'Credo di saperlo', non:'Non lo so'}[bs.conf] || '';
     let msg;
-    if (SL.isOpen(b)) msg = 'Valuta ogni frase con Giusta, Quasi o Sbagliata: il punteggio si aggiorna.';
+    if (SL.isOpen(b)) msg = b.items.some(i => i.checks) ? 'Per ogni frase tocca solo i punti che hai fatto davvero giusti: il punteggio si aggiorna. Papà vedrà le tue frasi e potrà correggerle.' : 'Valuta ogni frase con Giusta, Quasi o Sbagliata: il punteggio si aggiorna.';
     else if (bs.conf === 'so' && s.pct < 85) msg = 'Avevi detto "lo so", ma non tutto era giusto: è proprio qui che il ripasso a voce serve. Rileggi le correzioni, ripetile ad alta voce e rifai il blocco.';
     else if (bs.conf === 'non' && s.pct >= 85) msg = 'Ne sapevi più di quanto pensavi. Fidati di più.';
     else if (s.pct >= 85) msg = 'Bene. Ripeti a voce le spiegazioni e passa al blocco successivo.';
@@ -190,8 +192,9 @@ app.addEventListener('click', e => {
   if (d.choice) { setAnswer(d.choice, +d.i); rerenderBlock(secId()); return; }
   if (d.multi) { const v = (st.answers[d.multi] || []).slice(); const k = v.indexOf(d.f); if (k >= 0) v.splice(k, 1); else v.push(d.f); setAnswer(d.multi, v); rerenderBlock(secId()); return; }
   if (d.conf) { st.blocks[d.conf] = Object.assign({}, st.blocks[d.conf], {conf: d.v}); touch(); rerenderBlock(d.conf); return; }
-  if (d.check) { const b = mod.blocchi.find(x => x.id === d.check); const s = SL.bStats(b, st); st.blocks[d.check] = Object.assign({}, st.blocks[d.check], {checked: true, pct: s.pct, at: Date.now()}); touch(); push(); rerenderBlock(d.check); return; }
+  if (d.check) { const b = mod.blocchi.find(x => x.id === d.check); b.items.forEach(it => { if (it.k === 'open' && it.checks && !Array.isArray(st.answers[it.id+'_c'])) st.answers[it.id+'_c'] = []; }); const s = SL.bStats(b, st); st.blocks[d.check] = Object.assign({}, st.blocks[d.check], {checked: true, pct: s.pct, at: Date.now()}); touch(); push(); rerenderBlock(d.check); return; }
   if (d.redo) { const b = mod.blocchi.find(x => x.id === d.redo); SL.bUnits(b, st).forEach(u => { delete st.answers[u.id]; delete st.answers[u.id+'_s']; }); st.blocks[d.redo] = {}; touch(); rerenderBlock(d.redo); return; }
+  if (d.ck) { const v = (st.answers[d.ck+'_c'] || []).slice(); const i = +d.i, k = v.indexOf(i); if (k >= 0) v.splice(k, 1); else v.push(i); setAnswer(d.ck+'_c', v); rerenderBlock(secId()); return; }
   if (d.self) { setAnswer(d.self+'_s', d.v); rerenderBlock(secId()); return; }
   if (d.fshow) { flashShow[d.fshow] = true; rerenderBlock(secId()); return; }
   if (d.fskip) { flashIdx[d.fskip] = (flashIdx[d.fskip] || 0) + 1; flashShow[d.fskip] = false; rerenderBlock(secId()); return; }

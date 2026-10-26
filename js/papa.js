@@ -54,6 +54,7 @@ function render(){
   h += '<div class="tabs seg" role="group" aria-label="Sezione"><button type="button" data-vista="andamento" aria-pressed="'+(vista==='andamento')+'">Andamento</button><button type="button" data-vista="schede" aria-pressed="'+(vista==='schede')+'">Schede</button></div>';
   if (vista === 'schede') { app.innerHTML = h + '<p class="lead">'+esc(m.titolo)+(m.fonte ? ' · '+esc(m.fonte) : '')+'. Sono le stesse schede che vede lei.</p>' + m.schede; scrollTo(0, y); return; }
   const r = righe[m.id] || {}; const st = SL.normStato(r.stato); const orale = r.orale || {};
+  Object.keys(orale).forEach(k => { if (k.startsWith('ov_')) st.answers[k.slice(3)+'_ov'] = orale[k]; });
   const all = m.blocchi.map(b => ({b, s:SL.bStats(b, st), bs:st.blocks[b.id] || {}}));
   const done = all.filter(x => SL.isDone(x.b, st)).length;
   const graded = all.filter(x => !SL.isFlash(x.b) && x.bs.checked);
@@ -71,8 +72,10 @@ function render(){
     else {
       const open = SL.isOpen(b);
       h += '<table>'+SL.bUnits(b, st).map(u => {
-        const mk = !u.has ? '<td class="mk u">·</td>' : open ? (u.self ? '<td class="mk '+(u.ok ? 'y' : u.half ? 'u' : 'n')+'">'+(u.ok ? '✓' : u.half ? '~' : '✗')+'</td>' : '<td class="mk u">?</td>') : '<td class="mk '+(u.ok ? 'y' : 'n')+'">'+(u.ok ? '✓' : '✗')+'</td>';
-        return '<tr>'+mk+'<td>'+u.label+'</td><td>'+(u.has ? '<b>'+esc(u.show)+'</b>' : '<span class="note">non ancora</span>')+(u.has && !u.ok ? '<br><span class="note">giusta: '+esc(u.sol)+'</span>' : '')+'</td></tr>';
+        const mk = !u.has ? '<td class="mk u">·</td>' : open ? (u.self || u.ov ? '<td class="mk '+(u.ok ? 'y' : u.half ? 'u' : 'n')+'">'+(u.ok ? '✓' : u.half ? '~' : '✗')+'</td>' : '<td class="mk u">?</td>') : '<td class="mk '+(u.ok ? 'y' : 'n')+'">'+(u.ok ? '✓' : '✗')+'</td>';
+        const it = open ? b.items.find(x => x.id === u.id) : null;
+        const extra = open && u.has ? '<br><span class="note">soluzione: '+esc(u.sol)+'</span>'+(it && it.checks ? '<br><span class="note">punti spuntati da lei: '+u.ck.length+' su '+it.checks.length+(u.ck.length < it.checks.length ? ' (mancano: '+it.checks.filter((c,i) => !u.ck.includes(i)).map(esc).join('; ')+')' : '')+'</span>' : (u.self ? '<br><span class="note">sua valutazione: '+({ok:'giusta',mid:'quasi',no:'sbagliata'}[u.self])+'</span>' : ''))+'<div class="row" style="margin-top:6px"><span class="note">La tua correzione:</span>'+[['ok','Giusta'],['mid','Quasi'],['no','Sbagliata']].map(x => '<button type="button" class="btn" data-ov="'+u.id+'" data-v="'+x[0]+'" aria-pressed="'+(u.ov === x[0])+'">'+x[1]+'</button>').join('')+'</div>' : '';
+        return '<tr>'+mk+'<td>'+u.label+'</td><td>'+(u.has ? '<b>'+esc(u.show)+'</b>' : '<span class="note">non ancora</span>')+(!open && u.has && !u.ok ? '<br><span class="note">giusta: '+esc(u.sol)+'</span>' : '')+extra+'</td></tr>';
       }).join('')+'</table>';
     }
     h += '</div></details>';
@@ -91,6 +94,14 @@ app.addEventListener('click', async e => {
   if (d.vista) { vista = d.vista; SL.LS.set('sl_papa_vista', vista); render(); scrollTo(0, 0); return; }
   if (d.mod) { sel = d.mod; SL.LS.set('sl_papa_mod', sel); aperti.clear(); risposteAperte.clear(); confermaReset = false; render(); return; }
   if (d.oshow != null) { const i = +d.oshow; if (risposteAperte.has(i)) risposteAperte.delete(i); else risposteAperte.add(i); render(); return; }
+  if (d.ov) {
+    const r = righe[sel] || {modulo: sel}; const orale = Object.assign({}, r.orale || {}); const k = 'ov_' + d.ov;
+    if (orale[k] === d.v) delete orale[k]; else orale[k] = d.v;
+    righe[sel] = Object.assign({}, r, {orale}); render();
+    const {error} = r.aggiornato_il ? await sb.from('sessioni').update({orale}).eq('modulo', sel) : await sb.from('sessioni').upsert({modulo: sel, orale});
+    if (error) setConn('Correzione non salvata: riprova', false);
+    return;
+  }
   if (d.oral != null) {
     const r = righe[sel] || {modulo: sel}; const orale = Object.assign({}, r.orale || {}, {['o'+d.oral]: d.v});
     righe[sel] = Object.assign({}, r, {orale}); render();

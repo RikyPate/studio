@@ -85,7 +85,7 @@ const blocchi=[
  {k:'text',id:'agg4',q:'Scrivi in latino, nel caso giusto:',rows:[['con molte rose',both('multis','rosis')],['delle ragazze felici',both('laetarum','puellarum')],['l\'ancella diligente (compl. oggetto)',both('sedulam','ancillam')],['o padrona buona!',both('bona','domina')],['alle piccole isole',both('parvis','insulis')]]}
 ]},
 {id:'sum',title:'Il verbo sum',tag:'Memoria',goal:'Infinito, indicativo e imperativo presente. Poi distingui copula e predicato verbale.',items:[
- {k:'text',id:'sum1',q:'Scrivi la forma latina:',rows:[['essere (infinito)',['esse']],['io sono',['sum']],['tu sei',['es']],['egli è',['est']],['noi siamo',['sumus']],['voi siete',['estis']],['essi sono',['sunt']],['sii! (tu)',['es']],['siate! (voi)',['este']]]},
+ {k:'text',id:'sum1',q:'Scrivi la forma latina:',rows:[['essere (infinito)',['esse']],['io sono',['sum','ego sum']],['tu sei',['es','tu es']],['egli è',['est']],['noi siamo',['sumus']],['voi siete',['estis']],['essi sono',['sunt']],['sii! (tu)',['es']],['siate! (voi)',['este']]]},
  ch('sum2','<span class="latin">Romae sumus.</span> Sum è…',['Copula (predicato nominale)','Predicato verbale: significa "ci troviamo"'],1,''),
  ch('sum3','<span class="latin">Sedulae sumus.</span> Sum è…',['Copula: sedulae è la parte nominale','Predicato verbale'],0,''),
  ch('sum4','<span class="latin">Divitiae causa curarum sunt.</span> Perché <i>causa</i> è singolare se <i>divitiae</i> è plurale?',['È un errore','Quando la parte nominale è un sostantivo concorda con il soggetto solo nel caso, e mantiene il suo genere e numero','Perché causa è un aggettivo'],1,'Se invece la parte nominale è un aggettivo concorda in caso, genere e numero (Matrona proba est).')

@@ -35,11 +35,17 @@ SL.units = (it, st) => {
   const has = v => v != null && v !== '';
   switch (it.k) {
     case 'choice': { const v = A(it.id); return [{id:it.id, label:it.q, has:has(v), ok:v === it.a, show:has(v) ? it.opts[v] : '', sol:it.opts[it.a]}]; }
-    case 'select': return it.rows.map((r,i) => { const id = it.id+'_'+i, v = A(id); return {id, label:r[0], has:!!v, ok:v === r[1], show:v ? (SL.CASES[SL.CASEIDX(v)] || ['',v])[1] : '', sol:SL.CASES[SL.CASEIDX(r[1])][1]}; });
+    case 'select': { const lab = x => (it.opts.find(o => o[0] === x) || ['', x])[1]; return it.rows.map((r,i) => { const id = it.id+'_'+i, v = A(id); return {id, label:r[0], has:!!v, ok:v === r[1], show:v ? lab(v) : '', sol:lab(r[1])}; }); }
     case 'text': return it.rows.map((r,i) => { const id = it.id+'_'+i, v = A(id) || ''; return {id, label:r[0], has:!!SL.norm(v), ok:r[1].map(SL.norm).includes(SL.norm(v)), show:v, sol:r[1][0]}; });
-    case 'grid': { const out = []; it.a.forEach((row,ri) => row.forEach((acc,ci) => { const id = it.id+'_'+ri+'_'+ci, v = A(id) || ''; out.push({id, label:SL.CN[ri]+' '+(ci ? 'plur.' : 'sing.'), has:!!SL.norm(v), ok:acc.map(SL.norm).includes(SL.norm(v)), show:v, sol:acc[0]}); })); return out; }
+    case 'grid': { const out = []; it.a.forEach((row,ri) => row.forEach((acc,ci) => { const id = it.id+'_'+ri+'_'+ci, v = A(id) || ''; out.push({id, label:(it.rl || SL.CN)[ri]+' '+(it.cols ? it.cols[ci] : (ci ? 'plur.' : 'sing.')), has:!!SL.norm(v), ok:acc.map(SL.norm).includes(SL.norm(v)), show:v, sol:acc[0]}); })); return out; }
     case 'multi': { const v = A(it.id) || []; const ok = v.length === it.a.length && it.a.every(x => v.includes(x)); return [{id:it.id, label:it.form, has:v.length > 0, ok, show:v.map(SL.FL).join(', '), sol:it.a.map(SL.FL).join(', ')}]; }
-    case 'open': { const v = A(it.id) || '', s = A(it.id+'_s'); return [{id:it.id, label:it.src, has:!!String(v).trim(), ok:s === 'ok', half:s === 'mid', show:v, sol:it.model, self:s}]; }
+    case 'open': {
+      const v = A(it.id) || '', ck = A(it.id+'_c'), ov = A(it.id+'_ov');
+      let self = A(it.id+'_s');
+      if (it.checks) self = Array.isArray(ck) ? (ck.length === it.checks.length ? 'ok' : ck.length * 2 >= it.checks.length ? 'mid' : 'no') : undefined;
+      const fin = ov || self;
+      return [{id:it.id, label:it.src, has:!!String(v).trim(), ok:fin === 'ok', half:fin === 'mid', show:v, sol:it.model, self, ov, ck:Array.isArray(ck) ? ck : []}];
+    }
     case 'flash': return it.deck.map((c,i) => { const s = st.flash[it.id+'_'+i]; return {id:it.id+'_'+i, label:c[0], has:!!s, ok:s === 'ok', show:s === 'ok' ? 'sapeva' : s === 'no' ? 'non sapeva' : '', sol:c[1]}; });
   }
   return [];
